@@ -18,8 +18,8 @@ spy = bt.feeds.YahooFinanceData(dataname='SPY',
                                  fromdate=datetime(2012,2,28),
                                  todate=datetime(2018,2,28),
                                  plot=False)
-cerebro.adddata(spy)  # add S&P 500 Index
-
+cerebro.adddata(spy)  # add S&P 500 Indexe
+tickers = pd.read_csv('data/tickers-SP500-march.txt', header=None)[0].tolist()
 for ticker in tickers:
     df = pd.read_csv(f"survivorship-free/{ticker}.csv",
                      parse_dates=True,
@@ -31,7 +31,7 @@ cerebro.addobserver(bt.observers.Value)
 cerebro.addanalyzer(bt.analyzers.SharpeRatio, riskfreerate=0.0)
 cerebro.addanalyzer(bt.analyzers.Returns)
 cerebro.addanalyzer(bt.analyzers.DrawDown)
-cerebro.addstrategy(Strategy)
+cerebro.addstrategy(MomentumStrategy)
 results = cerebro.run()
 cerebro.plot(iplot=False)[0][0]
 saveplots(cerebro, file_path = 'images/savefig-momentum.png')

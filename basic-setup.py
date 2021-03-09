@@ -15,7 +15,7 @@ if __name__ == '__main__':
     cerebro = bt.Cerebro()
 
     # Add a strategy
-    cerebro.addstrategy(TestStrategy)
+    cerebro.addstrategy(MAcrossoverNoShort)
 
     # Datas are in a subfolder of the samples. Need to find where the script is
     # because it could have been called from anywhere
@@ -26,9 +26,9 @@ if __name__ == '__main__':
     data = bt.feeds.YahooFinanceCSVData(
         dataname=datapath,
         # Do not pass values before this date
-        fromdate=datetime.datetime(2000, 1, 1),
+        fromdate=datetime.datetime(2014, 1, 1),
         # Do not pass values before this date
-        todate=datetime.datetime(2000, 12, 31),
+        todate=datetime.datetime(2014, 12, 31),
         # Do not pass values after this date
         reverse=False)
 
