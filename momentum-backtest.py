@@ -6,6 +6,7 @@ import os.path  # To manage paths
 import sys  # To find out the script name (in argv[0])
 from strategies import *
 from helpers import *
+import pandas as pd
 
 # Import the backtrader platform
 import backtrader as bt
@@ -15,17 +16,21 @@ if __name__ == '__main__':
 cerebro.broker.set_coc(True)
 
 spy = bt.feeds.YahooFinanceData(dataname='SPY',
-                                 fromdate=datetime(2012,2,28),
-                                 todate=datetime(2018,2,28),
+                                 fromdate=datetime(2019,2,28),
+                                 todate=datetime(2021,2,28),
                                  plot=False)
-cerebro.adddata(spy)  # add S&P 500 Indexe
-tickers = pd.read_csv('data/tickers-SP500-march.txt', header=None)[0].tolist()
+cerebro.adddata(spy)  # add S&P 500 Index
+# Set our desired cash start
+cerebro.broker.setcash(640.0)
+# get SP500 tickers list
+tickers = pd.read_csv(getSP500Tickers())['Symbol'].tolist()
 for ticker in tickers:
-    df = pd.read_csv(f"survivorship-free/{ticker}.csv",
-                     parse_dates=True,
-                     index_col=0)
-    if len(df) > 100: # data must be long enough to compute 100 day SMA
-        cerebro.adddata(bt.feeds.PandasData(dataname=df, plot=False))
+    df = bt.feeds.YahooFinanceData(dataname=f"{ticker}",
+                                 fromdate=datetime(2019,2,28),
+                                 todate=datetime(2021,2,28),
+                                 plot=False)
+    print(df['open'])
+    cerebro.adddata(df)
 
 cerebro.addobserver(bt.observers.Value)
 cerebro.addanalyzer(bt.analyzers.SharpeRatio, riskfreerate=0.0)

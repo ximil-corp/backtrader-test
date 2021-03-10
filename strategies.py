@@ -378,7 +378,7 @@ class MomentumStrategy(bt.Strategy):
         self.spy = self.datas[0]
         self.stocks = self.datas[1:]
         
-        self.spy_sma200 = bt.indicators.SimpleMovingAverage(self.spy.close,
+        self.spy_sma200 = bt.indicators.SimpleMovingAverage(self.spy,
                                                             period=200)
         for d in self.stocks:
             self.inds[d] = {}

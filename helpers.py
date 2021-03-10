@@ -19,3 +19,13 @@ def saveplots(cerebro, numfigs=1, iplot=True, start=None, end=None,
             for f in fig:
                 f.savefig(file_path, bbox_inches='tight')
         return figs
+        
+def getSP500Tickers():
+    from datapackage import Package
+    
+    package = Package('https://datahub.io/core/s-and-p-500-companies/datapackage.json')
+    
+    # print processed tabular data (if exists any)
+    for resource in package.resources:
+        if resource.descriptor['datahub']['type'] == 'derived/csv':
+            return resource.descriptor['path']
