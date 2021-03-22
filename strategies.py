@@ -1,5 +1,4 @@
 import backtrader as bt
-
 from indicators import *
 
 # Create a Stratey
@@ -388,6 +387,9 @@ class MomentumStrategy(bt.Strategy):
                                                                        period=100)
             self.inds[d]["atr20"] = bt.indicators.ATR(d, 
                                                       period=20)
+    def log(self, txt, dt=None):
+        dt = dt or self.datas[0].datetime.date(0)
+        print(f'{dt.isoformat()} {txt}')
 
     def prenext(self):
         # call next() even when data is not available for all tickers
@@ -396,13 +398,33 @@ class MomentumStrategy(bt.Strategy):
     def next(self):
         if self.i % 5 == 0:
             self.rebalance_portfolio()
-        if self.i % 10 == 0:
-            self.rebalance_positions()
+        # if self.i % 10 == 0:
+        #     self.rebalance_positions()
         self.i += 1
     
+    def notify_order(self, order):
+
+    	if order.status in [order.Submitted, order.Accepted]:
+    		# An active Buy/Sell order has been submitted/accepted - Nothing to do
+    		return
+    	
+    	# Check if an order has been completed
+    	# Attention: broker could reject order if not enough cash
+    	if order.status in [order.Completed]:
+    		if order.isbuy():
+    			self.log(f'BUY EXECUTED, {order.executed.price:.2f} {order.data._name}')
+    		elif order.issell():
+    			self.log(f'SELL EXECUTED, {order.executed.price:.2f} {order.data._name}')
+    		self.bar_executed = len(self)
+    	elif order.status in [order.Canceled, order.Margin, order.Rejected]:
+    		self.log(f'Order Canceled/Margin/Rejected, {order.data._name}')
+    		
+    	# Reset orders
+    	self.order = None
+
     def rebalance_portfolio(self):
         # only look at data that we can have indicators for 
-        self.rankings = list(filter(lambda d: len(d) > 100, self.stocks))
+        self.rankings = list(filter(lambda d: len(d) > 100 and d.tick_close < 100, self.stocks))
         self.rankings.sort(key=lambda d: self.inds[d]["momentum"][0])
         num_stocks = len(self.rankings)
         
@@ -416,14 +438,21 @@ class MomentumStrategy(bt.Strategy):
             return
         
         # buy stocks with remaining cash
+        # initialize cash before loop to avoid open orders while waiting execs
+        cash = self.broker.get_cash()
         for i, d in enumerate(self.rankings[:int(num_stocks * 0.2)]):
-            cash = self.broker.get_cash()
+            # cash = self.broker.get_cash()
             value = self.broker.get_value()
-            if cash <= 0:
+            print(f'cash: {cash} - portfolio value: {value}')
+            if cash <= 0 or d.tick_close > cash:
                 break
             if not self.getposition(self.data).size:
-                size = value * 0.001 / self.inds[d]["atr20"]
-                self.buy(d, size=size)
+                size = round(value * 0.01 / self.inds[d]["atr20"])
+                order_amount = d.tick_close * size
+                if order_amount <= cash:
+                	print(f'order amount: {order_amount}, size: {size}, Ticker: {d._name}, close: {d.tick_close}')
+                	self.buy(d, size=size)
+                	cash = cash - order_amount
                 
         
     def rebalance_positions(self):
@@ -438,5 +467,5 @@ class MomentumStrategy(bt.Strategy):
             value = self.broker.get_value()
             if cash <= 0:
                 break
-            size = value * 0.001 / self.inds[d]["atr20"]
+            size = round(value * 0.001 / self.inds[d]["atr20"]) #TODO: check cash amount to avoid rejection
             self.order_target_size(d, size)
